@@ -19,14 +19,17 @@ var config = {
   module: {
     loaders: [
       { test: /\.jsx$/, loaders: ["react-hot", "babel"] },
-      { test: /\.css$/, loader: "style!css" }
+      { test: /\.css$/, loader: "style!css" },
+      { test: /\.scss$/, loader: "style!css!sass" },
+      { test: require.resolve("react"), loader: "expose?React" }
     ]
   },
   devServer: {
     contentBase: "./public",
     devtool: "eval",
     progress: true,
-    colors: true
+    colors: true,
+    hot: true
   },
   plugins: [
     new HtmlWebpackPlugin({ title: "Webpack Starter" }),

@@ -1,6 +1,17 @@
 /* jshint esnext:true */
 import React from "react";
 
+class Header extends React.Component {
+  render() {
+    return (
+      <header>
+        <div>{this.props.children}</div>
+      </header>
+    );
+  }
+}
+
+import "./app.scss";
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -13,11 +24,18 @@ class App extends React.Component {
     this._tid = setInterval(() => this.setState({ time: new Date() }), 50);
   }
 
+  componentWillUnmount() {
+    if (this._tid) {
+      clearInterval(this._tid);
+      delete this._tid;
+    }
+  }
+
   render() {
     let time = new Date();
     return (
       <div>
-        <h1>Hello Webpack!</h1>
+        <Header>Hello Webpack!</Header>
         <div>{this.state.time.toString()}</div>
       </div>
     );
