@@ -1,45 +1,125 @@
 /* jshint esnext:true */
-import React from "react";
+import React, { Component } from "react";
+import Router, { DefaultRoute, Route } from "react-router";
+import { history } from "react-router/lib/HashHistory";
 
-class Header extends React.Component {
+
+const actions = {
+  login: (credentials, history, nextPath) => {
+    return dispatch => {
+      setTimeout(() => {
+        dispatch({
+          type: "LOGIN_SUCCESS",
+          token: "foo",
+          user: { name: "craig" }
+        });
+        history.pushState(null, nextPath);
+      }, 300);
+    }
+  },
+  logout: () => {
+    dispatch({
+      type: "LOGOUT"
+    });
+    history.pushState(null, "/login");
+  }
+};
+
+class Dashboard extends Component {
   render() {
     return (
-      <header>
-        <div>{this.props.children}</div>
-      </header>
+      <div>
+        <h1>dashboard</h1>
+        <p>{this.props.user.name}</p>
+        <button onClick={actions.logout}>logout</button>
+      </div>
     );
   }
 }
 
-import "./app.scss";
-class App extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      time: new Date()
-    };
-  }
 
-  componentWillMount() {
-    this._tid = setInterval(() => this.setState({ time: new Date() }), 50);
-  }
 
-  componentWillUnmount() {
-    if (this._tid) {
-      clearInterval(this._tid);
-      delete this._tid;
-    }
+
+import { connect, Provider } from "react-redux";
+import { applyMiddleware, bindActionCreators, combineReducers, createStore } from 'redux';
+import thunk from "redux-thunk";
+import Immutable from "immutable";
+
+let initialState = Immutable.Map({});
+
+let auth = function (state = initialState, action = {}) {
+  console.log("auth", state, action);
+  switch (action.type) {
+    case "LOGIN_SUCCESS":
+      return state.set("token", action.token).set("user", action.user);
+    case "LOGOUT":
+      return state.delete("token").delete("user");
+    default:
+      return state;
+  }
+};
+
+let reducer = function (state = initialState, action = {}) {
+  return state;
+};
+
+const createStoreWithMiddleware = applyMiddleware(thunk)(createStore);
+
+const store = createStoreWithMiddleware(combineReducers({ auth }));
+
+const dispatch = store.dispatch.bind(store);
+
+class Login extends Component {
+
+  login(e) {
+    e.preventDefault();
+    console.log("login!", e);
+    let credentials = {};
+    dispatch(actions.login(credentials, history, "/"));
   }
 
   render() {
-    let time = new Date();
     return (
       <div>
-        <Header>Hello Webpack!</Header>
-        <div>{this.state.time.toString()}</div>
+        <h1>Login</h1>
+        <button onClick={this.login.bind(this)}>login</button>
       </div>
     );
   }
+}
+
+
+let DashboardView = connect(state => ({
+      user: state.auth.get("user")
+    }))(Dashboard);
+
+class App extends React.Component {
+  render() {
+    return (
+      <Provider store={store}>
+        {() =>
+          <Router history={history}>
+            <Route path="/" component={DashboardView} onEnter={requireAuth}/>
+            <Route path="/login" component={Login}/>
+          </Router>
+        }
+      </Provider>
+    );
+  }
+}
+
+function requireAuth(nextState, transition) {
+  const state = store.getState();
+  const isAuthenticated = Boolean(state.auth.get("token"));
+  console.log("requireAuth isAuthenticated:", isAuthenticated, state);
+  if (!isAuthenticated) {
+    transition.to("login", null, { next: nextState.location.pathname || "/" });
+  }
+}
+
+function logout(nextState, transition) {
+  store.dispatch({ type: "LOGOUT" });
+  transition.to("login");
 }
 
 export default App;
